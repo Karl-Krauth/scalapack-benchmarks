@@ -87,11 +87,13 @@ program cholesky
     ! Set A = lambda I.
     call pdlaset("", M, M, 0.0, lambda, A, 1, 1, descriptor_A)
 
-    ! Add gaussian noise to all entries of A.
+    ! Add gaussian noise to all entries of A and B.
     allocate(temp_arr(1:local_N_A))
     do i = 1, local_M
         call dlarnv(3, seed, local_N_A, temp_arr) 
+        call dlarnv(3, seed, local_N_B, B(i, :)) 
         A(i, :) = A(i, :) + temp_arr
+        B(i, :) = B(i, :) + 10.0
     end do
     A_copy = A
 
