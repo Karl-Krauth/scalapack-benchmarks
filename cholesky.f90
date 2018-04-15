@@ -12,15 +12,15 @@ program cholesky
     external pdgeadd 
     integer, external :: numroc
     double precision, external :: MPI_Wtime 
-    integer, parameter :: M = 50000 
-    integer, parameter :: block_size = 4096 
-    integer, parameter :: N_B = 1 
     integer, parameter :: descriptor_len = 9
     double precision, parameter :: one = 1.0
-    double precision, parameter :: lambda = M 
+    integer :: M 
+    integer :: block_size 
+    integer :: N_B 
+    double precision :: lambda 
+    integer :: processor_rows
+    integer :: processor_cols 
     integer :: block_size_N_B
-    integer :: processor_rows = 3 
-    integer :: processor_cols = 6 
     integer :: context
     integer :: my_row
     integer :: my_col
@@ -41,6 +41,9 @@ program cholesky
     double precision, allocatable :: A_copy(:, :)
     double precision, allocatable :: B(:, :)
 
+    open(unit=1, file="out.txt")
+    open(unit=2, file="in.txt")
+    read (2, *) M, block_size, N_B, lambda, processor_rows, processor_cols
     ! Initialize the process grid.
     call sl_init(processor_rows, processor_cols, context)
     call blacs_gridinfo(context, processor_rows, processor_cols, my_row, my_col)
@@ -53,6 +56,15 @@ program cholesky
     ! Check if this process is on the process grid.
     if (my_row == -1) then
         go to 10
+    end if
+
+    if (my_row == 0 .and. my_col == 0) then
+        write (1, *), "Num rows", M
+        write (1, *), "Block size", block_size
+        write (1, *), "B cols", N_B
+        write (1, *), "lambda", lambda
+        write (1, *), "processor rows", processor_rows
+        write (1, *), "processor cols", processor_cols
     end if
 
     ! Compute matrix shapes.
@@ -72,19 +84,19 @@ program cholesky
     ! Initialize global matrix descriptors.
     call descinit(descriptor_A, M, M, block_size, block_size, 0, 0, context, leading_dim, info)
     if (info /= 0) then
-        print *, "Descinit A failed argument", info, "is illegal."
+        write (1, *) "Descinit A failed argument", info, "is illegal."
         go to 10
     end if
 
     call descinit(descriptor_A_copy, M, M, block_size, block_size, 0, 0, context, leading_dim, info)
     if (info /= 0) then
-        print *, "Descinit A_copy failed argument", info, "is illegal."
+        write(1, *) "Descinit A_copy failed argument", info, "is illegal."
         go to 10
     end if
 
     call descinit(descriptor_B, M, N_B, block_size, block_size_N_B, 0, 0, context, leading_dim, info)
     if (info /= 0) then
-        print *, "Descinit B failed argument", info, "is illegal."
+        write(1, *) "Descinit B failed argument", info, "is illegal."
         go to 10
     end if
 
@@ -119,12 +131,12 @@ program cholesky
     call pdpotrf("L", M, A, 1, 1, descriptor_A, info)
     end_time = MPI_Wtime()
     if (info /= 0) then
-        print *, "Cholesky failed leading minor of order", info, "is not positive definite."
+        write(1, *) "Cholesky failed leading minor of order", info, "is not positive definite."
         go to 10
     end if
 
     if (my_row == 0 .and. my_col == 0) then
-        print *, "Cholesky took", end_time - start_time, "seconds."
+        write(1, *) "Cholesky took", end_time - start_time, "seconds."
     end if
 
     ! Set B to be gaussian with mean 10.
