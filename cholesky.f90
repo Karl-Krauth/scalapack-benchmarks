@@ -1,3 +1,5 @@
+#define GAUSSIAN_A 0
+
 program cholesky
     implicit none
     external blacs_exit
@@ -10,7 +12,7 @@ program cholesky
     external pdgeadd 
     integer, external :: numroc
     double precision, external :: MPI_Wtime 
-    integer, parameter :: M = 16384 
+    integer, parameter :: M = 50000 
     integer, parameter :: block_size = 4096 
     integer, parameter :: N_B = 1 
     integer, parameter :: descriptor_len = 9
@@ -62,8 +64,10 @@ program cholesky
 
     ! Allocate local matrices.
     allocate(A(1:local_M, 1:local_N_A))
-    allocate(A_copy(1:local_M, 1:local_N_A))
     allocate(B(1:local_M, 1:local_N_B))
+#if GAUSSIAN_A
+    allocate(A_copy(1:local_M, 1:local_N_A))
+#endif
 
     ! Initialize global matrix descriptors.
     call descinit(descriptor_A, M, M, block_size, block_size, 0, 0, context, leading_dim, info)
@@ -85,22 +89,32 @@ program cholesky
     end if
 
     ! Set A = lambda I.
+    if (my_row == 0 .and. my_col == 0) then
+        print *, "Initializing A."
+    endif
     call pdlaset("", M, M, 0.0, lambda, A, 1, 1, descriptor_A)
 
-    ! Add gaussian noise to all entries of A and B.
+#if GAUSSIAN_A
+    if (my_row == 0 .and. my_col == 0) then
+        print *, "Adding noise to A."
+    endif
+    ! Add gaussian noise to all entries of A.
     allocate(temp_arr(1:local_N_A))
     do i = 1, local_M
         call dlarnv(3, seed, local_N_A, temp_arr) 
-        call dlarnv(3, seed, local_N_B, B(i, :)) 
         A(i, :) = A(i, :) + temp_arr
-        B(i, :) = B(i, :) + 10.0
     end do
     A_copy = A
 
     ! Set A = (A + A^t).
     call pdgeadd("T", M, M, one, A_copy, 1, 1, descriptor_A_copy, one, A, 1, 1, descriptor_A)
+#endif
+
 
     ! Perform the cholesky.
+    if (my_row == 0 .and. my_col == 0) then
+        print *, "Running cholesky."
+    endif
     start_time = MPI_Wtime()
     call pdpotrf("L", M, A, 1, 1, descriptor_A, info)
     end_time = MPI_Wtime()
@@ -112,6 +126,12 @@ program cholesky
     if (my_row == 0 .and. my_col == 0) then
         print *, "Cholesky took", end_time - start_time, "seconds."
     end if
+
+    ! Set B to be gaussian with mean 10.
+    do i = 1, local_M
+        call dlarnv(3, seed, local_N_B, B(i, :)) 
+        B(i, :) = B(i, :) + 10.0
+    end do
 
     10 continue
     call blacs_exit(0)
