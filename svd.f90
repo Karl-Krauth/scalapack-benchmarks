@@ -98,7 +98,6 @@ program cholesky
         print *, "Initializing A."
     endif
     call pdlaset("", M, M, 0.0, lambda, A, 1, 1, descriptor_A)
-    print *, "SUCCES"
 
 #if GAUSSIAN_A
     if (my_row == 0 .and. my_col == 0) then
@@ -128,7 +127,7 @@ program cholesky
         print *, "Running SVD."
     endif
     start_time = MPI_Wtime()
-    call pdgesvd("N", "N", M, M, A, 1, 1, descriptor_A, singular_values, 0, 0, 0, 0, 0, 0, 0, 0, work_size, -1, info)
+    call pdgesvd("N", "N", M, M, A, 1, 1, descriptor_A, singular_values, 0, 0, 0, 0, 0, 0, 0, 0, work, work_size, info)
     end_time = MPI_Wtime()
     if (info /= 0) then
         write(1, *) "SVD failed with error code:", info
