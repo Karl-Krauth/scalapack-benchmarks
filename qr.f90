@@ -1,4 +1,4 @@
-#define GAUSSIAN_A 0
+#define GAUSSIAN_A 1
 
 program cholesky
     implicit none
