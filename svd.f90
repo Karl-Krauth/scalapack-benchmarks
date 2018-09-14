@@ -1,4 +1,4 @@
-#define GAUSSIAN_A 0
+#define GAUSSIAN_A 1
 
 program cholesky
     implicit none
@@ -17,6 +17,7 @@ program cholesky
     double precision, parameter :: one = 1.0
     integer :: M 
     integer :: block_size 
+    double precision :: dwork_size
     double precision :: lambda 
     integer :: processor_rows
     integer :: processor_cols 
@@ -75,7 +76,6 @@ program cholesky
     ! Allocate local matrices.
     allocate(A(1:local_M, 1:local_N))
     allocate(singular_values(1:M))
-    allocate(work(1:work_size))
 #if GAUSSIAN_A
     allocate(A_copy(1:local_M, 1:local_N))
 #endif
@@ -118,8 +118,10 @@ program cholesky
 
 
     ! Get the work size and allocate the work array.
-    call pdgesvd("N", "N", M, M, A, 1, 1, descriptor_A, singular_values, 0, 0, 0, 0, 0, 0, 0, 0, work_size, -1, info)
+    call pdgesvd("N", "N", M, M, A, 1, 1, descriptor_A, singular_values, 0, 0, 0, 0, 0, 0, 0, 0, dwork_size, -1, info)
+    work_size = nint(dwork_size)
     print *, "Works is", work_size
+    allocate(work(1:work_size))
 
     ! Perform the SVD.
     if (my_row == 0 .and. my_col == 0) then
