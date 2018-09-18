@@ -5,6 +5,7 @@ program cholesky
     external blacs_exit
     external blacs_gridexit
     external blacs_gridinfo
+    external blacs_barrier
     external descinit
     external sl_init
     external pdpotrf 
@@ -129,6 +130,7 @@ program cholesky
     endif
     start_time = MPI_Wtime()
     call pdpotrf("L", M, A, 1, 1, descriptor_A, info)
+    call blacs_barrier(context, "A")
     end_time = MPI_Wtime()
     if (info /= 0) then
         write(1, *) "Cholesky failed leading minor of order", info, "is not positive definite."

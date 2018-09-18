@@ -5,6 +5,7 @@ program cholesky
     external blacs_exit
     external blacs_gridexit
     external blacs_gridinfo
+    external blacs_barrier
     external descinit
     external sl_init
     external pdpotrf 
@@ -128,6 +129,7 @@ program cholesky
     endif
     start_time = MPI_Wtime()
     call pdgesvd("N", "N", M, M, A, 1, 1, descriptor_A, singular_values, 0, 0, 0, 0, 0, 0, 0, 0, work, work_size, info)
+    call blacs_barrier(context, "A")
     end_time = MPI_Wtime()
     if (info /= 0) then
         write(1, *) "SVD failed with error code:", info
