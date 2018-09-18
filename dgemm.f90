@@ -106,7 +106,7 @@ program dgemm
         print *, "Running DGEMM."
     endif
     start_time = MPI_Wtime()
-    call pdgemm("N", "N", M, M, M, 1.0, A, 1, 1, descriptor_A, B, 1, 1, descriptor_B, 0.0, C, 1, 1, descriptor_C)
+    call pdgemm("N", "N", M, M, M, one, A, 1, 1, descriptor_A, B, 1, 1, descriptor_B, 0.0, C, 1, 1, descriptor_C)
     if (info /= 0) then
         write(1, *) "DGEMM failed with error code:", info
         go to 10
